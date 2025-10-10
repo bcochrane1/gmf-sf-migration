@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<flow name="mvn-ch2-deploy-demoFlow2" doc:id="cc4e7810-33e2-4e88-91e9-cfd9272c4e49" >
+		<http:listener doc:name="/bulk" doc:id="970cd691-73d7-47cc-a599-95168322b528" config-ref="HTTP_Listener_config" path="/bulk"/>
+		<salesforce:get-job-state-bulk-api-v2 doc:name="Get job state bulk api v 2" doc:id="f4878afd-cb42-4a5c-945c-b1e48de89d57" config-ref="Salesforce_Config" id="750Oz00000PP21q" target="state"/>
+		<salesforce:retrieve-job-failed-results-bulk-v2 doc:name="Retrieve job failed results bulk v 2" doc:id="509f7730-a6ae-4f53-bc3a-c74ad09df792" config-ref="Salesforce_Config" id="750Oz00000PP21q" target="failure"/>
+		<salesforce:get-all-jobs-bulk-api-v2 doc:name="Get all jobs bulk api v 2" doc:id="24e7a829-1259-495d-ba0b-e9e17e2ba7c5" config-ref="Salesforce_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="ce069df9-ae8d-4689-9076-7571ca1cf14b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"state":vars.state,
+	"failure":vars.failure,
+	"jobs": payload
+		}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="gmfinancial-batchFlow" doc:id="1a189f83-9661-4109-988a-b337e38a9254" >
+		<http:listener doc:name="/start" doc:id="fe337c91-7d3d-48bb-a928-3510b65aa530" config-ref="HTTP_Listener_config" path="/start"/>
+		<ee:transform doc:name="batchData: initialize batch data" doc:id="3e420122-fdc2-40fd-9006-d2b2ce12df6a" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable resource="dataweave/setBatchData.dwl" variableName="batchData" />
+			</ee:variables>
+		</ee:transform>
+		<os:store doc:name="batchData" doc:id="eebf2b9d-b211-4a0d-8e41-1c50ed2ec401" key="batchData" objectStore="Object_store">
+			<os:value ><![CDATA[#[vars.batchData]]]></os:value>
+		</os:store>
+		<flow-ref doc:name="process-financial-account" doc:id="3dbe5f74-1a1a-422b-962a-77894d3d8bb4" name="process-financial-account"/>
+		<!-- [STUDIO:"batchData : update batch data"]<ee:transform doc:name="batchData : update batch data" doc:id="78737a5b-8602-4595-be5b-1fdd47cb1e06" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="batchData" ><![CDATA[%dw 2.0
+output application/json
+&#45;&#45;-
+vars.batchData&#93;&#93;></ee:set-variable>
+			</ee:variables>
+		</ee:transform> [STUDIO] -->
+		<!-- [STUDIO:"Logger"]<logger level="INFO" doc:name="Logger" doc:id="d195fd2e-c674-4829-b109-9578e1bfe203" /> [STUDIO] -->
+	</flow>
+	<flow name="gmfinancial-batchFlow1" doc:id="b57f4ff4-aff1-4ada-950d-0aeb864d6789" >
+		<http:listener doc:name="/test" doc:id="3c99af3c-8ab9-4134-bbc7-3963c6153a0f" config-ref="HTTP_Listener_config" path="/test"/>
+		<ee:transform doc:name="batchData: initialize batch data" doc:id="8298bd02-4392-406e-86ed-069e67fea0ea" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable resource="dataweave/setBatchData.dwl" variableName="batchData" />
+			</ee:variables>
+		</ee:transform>
+		<os:store doc:name="batchData" doc:id="340b5708-cbf0-49f7-aa1c-3a0f5dd733b2" key="batchData" objectStore="Object_store">
+			<os:value><![CDATA[#[vars.batchData]]]></os:value>
+		</os:store>
+		<ee:transform doc:name="Transform Message" doc:id="76b04b62-433d-41f1-ae90-7fe0d8e0c19e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"currentObject": payload.objectName,
+	"sequence":((vars.batchData.objects[indexOf(batchData.objects..objectName, payload.objectName)])..sequence[0]) -1
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	</mule>

@@ -1,0 +1,55 @@
+process:
+  debug: "true"
+  batch:
+    blockSize: "10000"
+    aggregatorSize: "10000"
+    wait: "6000"
+objects:
+  financialAccount:
+    objectName: "FinancialAccount"
+    externalId: "Account_Number_Ext_Id__c"
+    feed: "A"
+    fileName: "test_financial_account.csv"
+    sequence: "1"
+  contact:
+    objectName: "Contact"
+    externalId: "Customer_Ext_Id__c"
+    feed: "A"
+    fileName: ""
+    sequence: "2"
+  financialAccountAddress:
+    objectName: "FinancialAccountAddress"
+    externalId: "Account_Number_Ext_Id__c"
+    feed: "A"
+    fileName: ""
+    sequence: "3"
+  financialAccountParty:
+    objectName: "FinancialAccountParty"
+    externalId: "AccountNumber_CustomerId_Ext_Id__c"
+    feed: "A"
+    fileName: ""
+    sequence: "4"
+  product2:
+    objectName: "Product2"
+    externalId: "Product_Type_Ext_Id__c"
+    feed: "A"
+    fileName: ""
+    sequence: "5"
+  vehicleDefinition:
+    objectName: "VehicleDefinition"
+    externalId: "Product_Type_Ext_Id__c"
+    feed: "A"
+    fileName: ""
+    sequence: "6"
+  asset:
+    objectName: "Asset"
+    externalId: "AccountNumber_ProductId_Ext_Id__c"
+    feed: "A"
+    fileName: ""
+    sequence: "7"
+  vehicle:
+    objectName: "Vehicle"
+    externalId: AccountNumber_VIN_Ext_Id__c"
+    feed: "A"
+    fileName: ""
+    sequence: "8"

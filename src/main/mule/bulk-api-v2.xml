@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	
+	<flow name="bulk-api-batch-process" doc:id="20ebade5-174d-4990-9f2b-7919948c4a33" >
+		<choice doc:name="Choice" doc:id="536a2181-d1ae-41a5-a916-dda3a5acd9e0" >
+			<when expression="#[vars.batchData.metadata.debug]">
+				<file:read doc:name="set test fileas payload" doc:id="a7c1a0d1-c691-4e9b-97d2-60741c8e5d23" config-ref="File_Config" path="#[vars.flowData.fileName]" />
+			</when>
+			<otherwise >
+				<flow-ref doc:name="readSFTP" doc:id="7e25f975-336a-4061-a0c1-2aa75e86a29c" name="readSFTP"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="1cca001d-9c2a-45fb-8b80-b78b3fb2f2c8" />
+		<batch:job jobName="bulk-api-v2Batch_Job" doc:id="ef9ffe5c-3600-4e2a-9bf8-8e4c2036b15d" blockSize="${process.batch.blockSize}">
+			<batch:process-records >
+				<batch:step name="Batch_Step" doc:id="b7ad2af6-bb06-4123-9fb8-e780ce0008a1" >
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="63d879a0-f458-41db-99cd-69ecab045c43" size="${process.batch.aggregatorSize}" preserveMimeTypes="true">
+						<ee:transform doc:name="Flatten to CSV" doc:id="d1c6b609-97ed-4b68-86c1-486a4dc0eac3">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output text/csv
+---
+flatten(payload)]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+						<logger level="DEBUG" doc:name="First 10 lines of Payload" doc:id="173d5e35-39f6-4eb6-ac7b-9ec3dc810651" message="#[payload[0 to 9]]" />
+						<salesforce:create-job-bulk-api-v2 objectType="#[vars.flowData.objectName]" operation="upsert" doc:name="Upsert FinancialAccount" doc:id="87e8c86a-f2d4-4cc1-97ae-a336f6196283" config-ref="Salesforce_Config" externalIdFieldName="#[vars.flowData.externalId]" />
+						<ee:transform doc:name="Transform Message" doc:id="97fca08a-0c37-44c9-837d-3a747bfc7556" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete >
+				<ee:transform doc:name="Transform Message" doc:id="84ecf55e-b499-48ab-9ab6-19d44e0c67c6">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+
+import * from dw::Runtime
+output application/java
+
+var timer = Mule::p('process.batch.wait') as Number
+---
+{
+	"currentObject": vars.flowData.objectName,
+	"sequence": vars.flowData.sequence
+}
+wait timer]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<vm:publish doc:name="execute" doc:id="c4281ae9-c102-42f1-b603-bbcca97624c6" config-ref="VM_Config" correlationId="#[correlationId]" queueName="execute"/>
+			</batch:on-complete>
+		</batch:job>
+	</flow>
+	<flow name="bulk-api-v2Flow1" doc:id="cf9d58db-0df5-4699-bd8c-5370eacf624b" >
+		<vm:listener queueName="execute" doc:name="Listener" doc:id="758111cb-5838-4785-9ae6-716b41abd20a" config-ref="VM_Config"/>
+		<os:retrieve doc:name="batchData" doc:id="5e0eb16a-e233-42cd-b4f6-93b78cfb202a" key="batchData" objectStore="Object_store" target="batchData"/>
+		<ee:transform doc:name="flowData" doc:id="0e6263c6-ea1f-48f3-8c5a-a67945dc8d8a" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="flowData" ><![CDATA[%dw 2.0
+output application/json
+var next = payload.sequence + 1
+---
+vars.batchData.objects[indexOf(vars.batchData.objects..sequence, next)]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="7311a0d4-e217-4346-8eab-32733467fdf3" >
+			<when expression="#[Mule::p('objects.contact.objectName') == vars.flowData.objectName]">
+				<logger level="INFO" doc:name="Logger" doc:id="3de4724a-ec3a-4755-80e7-a414ac577f98" />
+			</when>
+			<when expression="#[Mule::p('objects.financialAccountAddress.objectName') == vars.flowData.objectName]">
+				<logger level="INFO" doc:name="Logger" doc:id="dae47bb2-5ce8-45f8-8191-06b976dd2c29" />
+			</when>
+			<when expression="#[Mule::p('objects.financialAccountParty.objectName') == vars.flowData.objectName]">
+				<logger level="INFO" doc:name="Logger" doc:id="4f75eeff-320b-42c8-8b99-d1e9936e9271" />
+			</when>
+			<when expression="#[Mule::p('objects.product2.objectName') == vars.flowData.objectName]">
+				<logger level="INFO" doc:name="Logger" doc:id="c31d2d5c-05fe-4a35-8bde-3043e1a6dc53" />
+			</when>
+			<when expression="#[Mule::p('objects.vehicleDefinition.objectName') == vars.flowData.objectName]">
+				<logger level="INFO" doc:name="Logger" doc:id="c1acc066-565c-4dd1-9295-ffc174351421" />
+			</when>
+			<when expression="#[Mule::p('objects.asset.objectName') == vars.flowData.objectName]">
+				<logger level="INFO" doc:name="Logger" doc:id="3a1ec0ee-cf75-4466-89de-39d878670e55" />
+			</when>
+			<when expression="#[Mule::p('objects.vehicle.objectName') == vars.flowData.objectName]">
+				<logger level="INFO" doc:name="Logger" doc:id="adc9c4be-ef14-4b64-a9ee-b7cd5c8fd78e" />
+			</when>
+			<when expression="#[Mule::p('objects.financialAccount.objectName') == vars.flowData.objectName]">
+				<logger level="INFO" doc:name="Logger" doc:id="40115503-7caf-4e74-80a7-dda49f30d04a" />
+			</when>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="15910ccf-0ab8-4978-9b31-e0af593264ee" message="#[payload]"/>
+	</flow>
+</mule>

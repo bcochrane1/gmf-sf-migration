@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="readSFTP" doc:id="ccbc9e3e-f4ec-4923-b128-cafd74f9b338" >
+		<file:read doc:name="Read file" doc:id="50adb237-92a8-47ca-90ff-5b09928d77fd" config-ref="File_Config" path="#[vars.flowData.fileName]" />
+		<ee:transform doc:name="Transform Message" doc:id="6d0933c5-f860-4484-aed3-0cc657fa8457" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output text/csv
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
+	
+	<flow name="process-financial-account" doc:id="5cd76e23-02a8-4d36-a1e2-4e50ff579d7c" >
+		<ee:transform doc:name="set flowData" doc:id="d3fb3244-1ceb-428d-855e-102f99c09c74" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="flowData" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.batchData.objects.financialAccount[0]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="readFiles" doc:id="780d960d-af0f-4e61-be6a-90250cb26db9" name="readSFTP"/>
+		
+		<flow-ref doc:name="bulk-api-batch-process" doc:id="f1bfb353-1b82-454c-b7f5-dbe0d4ba7537" name="bulk-api-batch-process"/>
+	</flow>
+	<flow name="process-contact" doc:id="52dd40ed-e70a-456d-8013-33e005b14c36" >
+		<ee:transform doc:name="set flowData" doc:id="13cdc5f6-a705-4aed-976f-6c1349fbc4ae" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="flowData" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.batchData.objects.contact[0]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="set file payload" doc:id="7f46a042-e71f-449e-a9b9-df1f56d30c9c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="bulk-api-batch-process" doc:id="dffbfbf2-e44c-4134-baca-cc50355ae3c3" name="bulk-api-batch-process" />
+	</flow>
+	<flow name="process-financial-account-party" doc:id="42fff74c-3748-4e3d-b78a-686b17285928" >
+		<ee:transform doc:name="set flowData" doc:id="e7581cf5-bdbe-4526-b660-980981307de2" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="flowData" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.batchData.objects.financialAccountParty[0]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="set file payload" doc:id="86e4ca61-37df-46f0-aed5-e58b85a39a43" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="bulk-api-batch-process" doc:id="d3761768-9a8e-476d-842a-3ac8d299c6e0" name="bulk-api-batch-process" />
+	</flow>
+	<flow name="process-financial-account-address" doc:id="844f5ab8-32f5-4e36-adfd-0d44f528edce" >
+		<ee:transform doc:name="set flowData" doc:id="57588a47-0c71-4323-bd81-a583c825fcc0" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="flowData" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.batchData.objects.financialAccountParty[0]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="set file payload" doc:id="521b0cde-246e-4682-85db-c3035c5f86f0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="bulk-api-batch-process" doc:id="4c7f25a4-4942-4460-9501-228c3ab62801" name="bulk-api-batch-process" />
+	</flow>
+	
+
+</mule>

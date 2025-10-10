@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<configuration-properties doc:name="Configuration properties" doc:id="4d188898-6de1-4ad8-a2bc-36894e786572" file="properties/commons.yaml" />
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="4f337d95-7011-4bb9-bda0-85c5efdbc63c" >
+		<vm:queues >
+			<vm:queue queueName="execute" />
+		</vm:queues>
+	</vm:config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="f463fbec-88f9-489a-9525-d4f44bdc8f02" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="0f1bb96e-8f31-47a1-8ce6-c64ad91003c4" >
+		<file:connection workingDir="/Users/bcochrane/AnypointStudio/studio-workspace/gmfinancial-batch/src/main/resources/testdata" />
+	</file:config>
+	<os:config name="ObjectStore_Config" doc:name="ObjectStore Config" doc:id="67d8c12e-f488-4b72-8694-526a59111a21" />
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="fd8ccda5-9fea-446f-b3fb-8f57e81e0404" persistent="false" config-ref="ObjectStore_Config" />
+</mule>

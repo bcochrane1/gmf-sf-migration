@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+		<flow name="process-asset" doc:id="837501d3-5b6b-470f-8464-e16249140362" >
+		<ee:transform doc:name="set flowData" doc:id="478e2c93-3551-4b1b-b66e-bf8cdca6ba38" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="flowData" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.batchData.objects.financialAccount[0]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="readFiles" doc:id="08bcd575-698a-44c1-a5f2-da95732474ee" name="readSFTP"/>
+		<choice doc:name="Choice" doc:id="84690c4b-6ade-4c93-9c2f-8bb840344ea0" >
+			<when expression="#[vars.batchData.metadata.debug]">
+				<ee:transform doc:name="set file payload" doc:id="3e1203c0-e146-4b86-83da-187cf95f2b0a">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output text/csv
+---
+readUrl("classpath://" ++ vars.flowData.fileName, "text/csv")]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+		</choice>
+		<flow-ref doc:name="bulk-api-batch-process" doc:id="f7870337-352f-4db7-9168-6b6aaf99e9f7" name="bulk-api-batch-process"/>
+	</flow>
+	<flow name="process-vehicle" doc:id="d3b42e09-2364-4e23-bef6-1c76d7453569" >
+		<ee:transform doc:name="set flowData" doc:id="11a95c8b-5aa3-46e1-b056-4557bd19f90b" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="flowData" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.batchData.objects.financialAccount[0]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="readFiles" doc:id="fdda7c96-ef99-4b40-bdaf-127a27c422c1" name="readSFTP"/>
+		<choice doc:name="Choice" doc:id="23daaa29-5217-4ccc-a39a-3b86629fa4c8" >
+			<when expression="#[vars.batchData.metadata.debug]">
+				<ee:transform doc:name="set file payload" doc:id="bce42d78-6597-4bfb-97a4-eef5e141182b">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output text/csv
+---
+readUrl("classpath://" ++ vars.flowData.fileName, "text/csv")]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+		</choice>
+		<flow-ref doc:name="bulk-api-batch-process" doc:id="ea7729a2-cdca-4ed3-9404-faa965254171" name="bulk-api-batch-process"/>
+	</flow>
+</mule>
