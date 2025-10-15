@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<flow name="bulk-job-errorsFlow" doc:id="f86bd9da-237f-4f58-b658-db1dc0009919" >
+		<http:listener doc:name="Listener" doc:id="d7728924-13ae-46fb-a3c5-dbd38c4f6e65" config-ref="HTTP_Listener_config" path="/batch"/>
+		<set-variable value="#[uuid()]" doc:name="uuid" doc:id="08a6c3e6-cc8b-451b-9262-cb3ef48f0574" variableName="uuid"/>
+		<set-variable value="#[attributes.queryParams.t]" doc:name="t" doc:id="de67be1a-f4ba-4b74-839a-1e7401f6620e" variableName="t"/>
+		<set-variable value='#[{&#10;    "FinancialAccount": 0,&#10;    "Contact": 0,&#10;    "FinancialAccountAddress": 0,&#10;    "FinancialAccountParty": 0,&#10;    "Product2": 0,&#10;    "VehicleDefinition": 0,&#10;    "Asset": 0,&#10;    "Vehicle": 0&#10;}]' doc:name="failureCounter" doc:id="a6abb0e0-3292-4c8e-9039-46ef342790ef" variableName="failureCounter"/>
+		<logger level="INFO" doc:name="Logger" doc:id="d53ed7cc-4119-4638-9b6d-03cc75cbbb9f" message="#[Mule::p('app.home')]"/>
+		<salesforce:get-all-jobs-bulk-api-v2 doc:name="Get all jobs bulk api v 2" doc:id="ba404599-b6f2-4d29-9c55-5b4e945da976"/>
+		<ee:transform doc:name="Transform Message" doc:id="e6ddc143-ab56-433c-ace3-2b291739621f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+var startTime = now()
+var object = "Product2"
+//2025-10-08T20:16:31.544163Z
+---
+payload filter ((item) -> (item.createdDate ) > (vars.t))]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="bulk-job-errorsFlow2" doc:id="27e42699-2974-4fe7-9102-e584c27a055a" name="bulk-job-errorsFlow2"/>
+		<ee:transform doc:name="Transform Message" doc:id="f4d41e6e-2f47-4ff7-aeb4-4127b64b77cc" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.failureCounter]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="bulk-job-errorsFlow2" doc:id="3f59e49c-9ecc-4fe2-b0f3-f358f72c456e" >
+		<!-- [STUDIO:"Transform Message"]<ee:transform doc:name="Transform Message" doc:id="26cc6612-6b26-46b3-8439-26f9e59d63d7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+&#45;&#45;-
+[
+  {
+    "lineEnding": "CRLF",
+    "externalIdFieldName": "Customer_Ext_Id__c",
+    "systemModstamp": "2025-10-08T16:45:35.000+0000",
+    "concurrencyMode": "Parallel",
+    "contentUrl": null,
+    "apiVersion": "65",
+    "createdDate": "2025-10-08T16:45:32.000+0000",
+    "id": "750Oz00000Pd9El",
+    "state": "JobComplete",
+    "jobType": "V2Ingest",
+    "contentType": "CSV",
+    "operation": "upsert",
+    "createdById": "005Oz00000PdC7lIAF",
+    "object": "Contact",
+    "columnDelimiter": "COMMA"
+  }&#93;&#93;&#93;></ee:set-payload>
+			</ee:message>
+		</ee:transform> [STUDIO] -->
+		<foreach doc:name="For Each" doc:id="2e78d9e9-b062-46d3-9050-c82a47af7bad" >
+			<set-variable value="#[payload.object]" doc:name="objectName" doc:id="67a9a3f9-b3b9-48ec-955f-cfdef9093448" variableName="objectName"/>
+			<salesforce:retrieve-job-failed-results-bulk-v2 doc:name="Retrieve job failed results bulk v 2" doc:id="075851b2-3dd7-4e1f-a93f-8bf295bcde00" id="#[payload.id]" />
+			<logger level="INFO" doc:name="Logger" doc:id="66806b0d-78bd-4607-9d57-89b4c4743c5b" message="#[sizeOf(payload)]"/>
+			<choice doc:name="Choice" doc:id="26d8ddcd-a280-46fd-aecd-9a490ae62aa2">
+				<when expression="#[!isEmpty(payload)]">
+					<ee:transform doc:name="Transform Message" doc:id="edf06b15-ed76-4783-bac8-6ec1ffc3663b">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+
+{
+	"data":payload,
+	"fileName": "errorFiles/" ++ vars.objectName ++ "-" ++ vars.uuid ++ ".csv",
+	"objectName": vars.objectName,
+	"csvHeader": keysOf(payload[0].originalFields) ++ ["errorMessage"]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+					<flow-ref doc:name="bulk-job-errorsFlow1" doc:id="2dac690c-64b5-4697-89da-48e21b333b1c" name="bulk-job-errorsFlow1"/>
+				</when>
+			</choice>
+		</foreach>
+		<!-- [STUDIO:"Parallel For Each"]<parallel-foreach doc:name="Parallel For Each" doc:id="3f8a6c8f-a756-4195-8e2b-663fba09252a" >
+			<vm:publish queueName="failure" doc:name="Publish" doc:id="ca478563-befa-4780-a57a-68af3b7698b0" config-ref="VM_Config" />
+		</parallel-foreach> [STUDIO] -->
+	</flow>
+	<flow name="bulk-job-errorsFlow1" doc:id="75338136-5be0-4138-b3bc-864add364307" >
+		<vm:listener queueName="failure" doc:name="failure" doc:id="bd37ef88-6021-4d04-8d1b-24e7487e7689" config-ref="VM_Config" numberOfConsumers="1"/>
+		<set-variable value="#[true as Boolean]" doc:name="fileExists : true" doc:id="650285a8-daed-44e2-9f31-fc45612aa2bd" variableName="fileExists"/>
+		<try doc:name="Try" doc:id="626765cb-0c9d-4b5a-8919-c606ce18a1a1" >
+			<file:read doc:name="Read" doc:id="f101ccfc-81f3-4b96-9048-b02e72ac4e4d" config-ref="File_Config" path="#[payload.fileName]" target="fileContent" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="2084d564-8b21-4b45-9155-2ae79bccbe78" >
+					<set-variable value="#[false as Boolean]" doc:name="fileExists: false" doc:id="87ec2910-310f-4894-8a34-41d728ab663e" variableName="fileExists" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<choice doc:name="Choice" doc:id="907ae9a0-e5a9-4c5a-8217-8509faf1dbb1" >
+			<when expression="#[vars.fileExists]">
+				<ee:transform doc:name="Transform Message" doc:id="e8937046-8005-4fda-89bc-b34bf3dcfd86">
+					<ee:message />
+					<ee:variables>
+						<ee:set-variable variableName="data"><![CDATA[%dw 2.0
+output text/csv header=false
+---
+payload.data map ((item, index) ->
+    item.originalFields ++ {"errorMessage": item.errorMessage}
+ )]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message" doc:id="13824da2-52fd-436d-a408-724808bd2bab">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="data"><![CDATA[%dw 2.0
+output text/csv
+---
+payload.data map ((item, index) ->
+    item.originalFields ++ {"errorMessage": item.errorMessage}
+ )]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="71c73cad-e8a0-4a37-8dd8-60cd9823253b" message='#["writing: " ++ sizeOf(payload.data) ++ " to: " ++ payload.fileName]'/>
+		<ee:transform doc:name="Transform Message" doc:id="0fba439e-2480-494e-a6cf-aea4c17f6f2c" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="failureCounter" ><![CDATA[%dw 2.0
+output application/json
+import * from dw::util::Values
+var object = vars.objectName
+---
+
+vars.failureCounter update object with ( vars.failureCounter[object] + sizeOf(payload.data))]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<file:write doc:name="Write" doc:id="e39966f6-247b-46eb-822b-14717ba0bccf" config-ref="File_Config" path='#[payload.fileName]' mode="APPEND">
+			<file:content ><![CDATA[#[vars.data]]]></file:content>
+		</file:write>
+	</flow>
+</mule>
